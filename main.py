@@ -101,7 +101,7 @@ for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=Fal
     else:
         audio_pbar.set_description(f"No se encontró transcript para {audio_name}")
 
-
+#TODO: añadir sistema de traducción usando gettext o similar
 #TODO: LIMPIAR ARCHIVOS TEMPORALES DESPUÉS de la EJECUCIÓN
 # for transcribed_audio in (audio_pbar := tqdm(transcribed_audios, desc="Limpiando archivos", leave=False)): # for audio in audio_files:
 #     audio, output_dir = transcribed_audio
