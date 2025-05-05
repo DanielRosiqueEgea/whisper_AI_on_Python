@@ -190,29 +190,15 @@ print("Formatos seleccionados:", formats)
 
 
 
-for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=False)): # for audio in audio_files:
-    audio_name = os.path.basename(audio)
-    audio_stem = os.path.splitext(audio_name)[0]
-    audio_output_host_dir = os.path.join(output_audio_dir, audio_stem)
-    os.makedirs(audio_output_host_dir, exist_ok=True)
+def write_files(formats, audio_stem, audio_output_host_dir, all_segments):
+    combined_text = "".join(s["text"] for s in all_segments)
+    for fmt in formats:
+        output_file = os.path.join(audio_output_host_dir, f"{audio_stem}.{fmt}")
+        writer = get_writer(fmt, audio_output_host_dir)
+        with open(output_file, "w", encoding="utf-8") as f:
+            writer.write_result({"segments": all_segments, "text": combined_text}, f)
 
-    
-    if use_docker:
-        audio_pbar.set_description(f"Procesando {audio} con Docker...")
-        audio_output_container_dir = os.path.join(mount_point, audio_stem) 
-        audio_in_container = os.path.join(mount_point, audio_name)
-        result = run_whisper_docker(container, audio_in_container, audio_output_container_dir)
-        continue
-
-    all_segments = []
-    audio_pbar.set_description(f"Procesando audio: {audio_name} en Local")
-
-    chunks = split_audio_fixed_chunks(audio, chunk_duration=60)
-    transcript_path = os.path.join(audio_output_host_dir, f"{audio_stem}.txt")
-    if os.path.exists(transcript_path):
-        audio_pbar.set_description(f"Transcript ya existente: {transcript_path}")
-        continue
-    
+def transcribe_chunks(model, adjust_segments, audio_stem, audio_output_host_dir, all_segments, chunks):
     for chunk_path, offset in (chunk_pbar := tqdm(chunks, desc="Procesando fragmento", leave=False)):
         chunk_pbar.set_description(f"Procesando fragmento desde {offset}s: {chunk_path}")
         
@@ -232,18 +218,41 @@ for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=Fal
         with open(json_path, "w", encoding="utf-8") as jf:
             json.dump(segments, jf, ensure_ascii=False, indent=2)
 
+for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=False)): # for audio in audio_files:
+    audio_name = os.path.basename(audio)
+    audio_stem = os.path.splitext(audio_name)[0]
+    audio_output_host_dir = os.path.join(output_audio_dir, audio_stem)
+    os.makedirs(audio_output_host_dir, exist_ok=True)
 
-    combined_text = "".join(s["text"] for s in all_segments)
-    for fmt in formats:
-        output_file = os.path.join(audio_output_host_dir, f"{audio_stem}.{fmt}")
-        writer = get_writer(fmt, audio_output_host_dir)
-        with open(output_file, "w", encoding="utf-8") as f:
-            writer.write_result({"segments": all_segments, "text": combined_text}, f)
+    
+    if use_docker:
+        audio_pbar.set_description(f"Procesando {audio} con Docker...")
+        audio_output_container_dir = os.path.join(mount_point, audio_stem) 
+        audio_in_container = os.path.join(mount_point, audio_name)
+        result = run_whisper_docker(container, audio_in_container, audio_output_container_dir)
+        continue
+
+    all_segments = []
+    audio_pbar.set_description(f"Procesando audio: {audio_name} en Local")
+
+    chunks = split_audio_fixed_chunks(audio, chunk_duration=60)
+    
+    transcript_path = os.path.join(audio_output_host_dir, f"{audio_stem}.txt")
+    if os.path.exists(transcript_path):
+        audio_pbar.set_description(f"Transcript ya existente: {transcript_path}")
+        continue
+    
+    transcribe_chunks(model, adjust_segments, audio_stem, audio_output_host_dir, all_segments, chunks)
+
+
+    write_files(formats, audio_stem, audio_output_host_dir, all_segments)
 
 
     if os.path.exists(transcript_path):
         audio_pbar.set_description(f"Transcript generado: {transcript_path}")
     else:
         audio_pbar.set_description(f"No se encontró transcript para {audio_name}")
+
+
 
 print("Proceso finalizado.")
