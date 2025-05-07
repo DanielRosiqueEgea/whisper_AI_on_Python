@@ -12,7 +12,7 @@ from whisper.utils import get_writer, format_timestamp
 import subprocess
 import math  
 import json
-from utils import * 
+from core.utils import generate_audio_files, transcribe_chunks, run_whisper_docker, run_whisper_local, select_formats
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -103,6 +103,7 @@ for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=Fal
 
 #TODO: añadir sistema de traducción usando gettext o similar
 #TODO: LIMPIAR ARCHIVOS TEMPORALES DESPUÉS de la EJECUCIÓN
+#TODO: integrar con tkinter una interfaz gráfica
 # for transcribed_audio in (audio_pbar := tqdm(transcribed_audios, desc="Limpiando archivos", leave=False)): # for audio in audio_files:
 #     audio, output_dir = transcribed_audio
 #     # Extraer nuevo directorio de audio

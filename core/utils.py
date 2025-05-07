@@ -15,6 +15,7 @@ import json
 
 # Extensiones de audio aceptadas directamente
 def generate_audio_files(input_paths, output_audio_dir):
+    #TODO: Añadir tqdm
     audio_exts = [".mp3", ".wav", ".m4a"]
 
 # Paso 3: Convertir solo los videos
@@ -169,6 +170,8 @@ def transcribe_chunks(model, adjust_segments, audio_stem, audio_output_host_dir,
 
 
         result = model.transcribe(chunk_path, language="Spanish", verbose=None)
+        if result['temperature'] < 0.4:
+            continue
         segments = result["segments"]
         segments = adjust_segments(segments, offset)
         all_segments.extend(segments)
@@ -177,7 +180,7 @@ def transcribe_chunks(model, adjust_segments, audio_stem, audio_output_host_dir,
             json.dump(segments, jf, ensure_ascii=False, indent=2)
 
 
-# TODO : integrar con tkinter una interfaz gráfica
+
 # def test_methods():
 
 #     window = tk.Tk()
