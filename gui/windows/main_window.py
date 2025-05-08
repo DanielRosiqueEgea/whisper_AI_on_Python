@@ -7,10 +7,12 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon, QFontMetrics
 import os
+from gui.widgets.CustomQbutton import CustomQButton
 
 class FileItemWidget(QWidget):
     def __init__(self, file_path, main_window):
         super().__init__()
+        self._estado_resize = None
         self.file_path = file_path
         self.file_name = os.path.basename(file_path)
         self.main_window = main_window
@@ -56,24 +58,33 @@ class FileItemWidget(QWidget):
         botones_ancho_total = self.edit_button.width() + self.delete_button.width() + 30
         print(f'Espacio disponible: {disponible} \n tamaño path: {width_path + botones_ancho_total} \n tamaño name: {width_name + botones_ancho_total}')
 
+        
         if disponible <  (width_name + botones_ancho_total):
-            self.label.setText(os.path.basename(self.file_path))
-            self.edit_button.setText(u"\u270E")
-            self.edit_button.setFixedWidth(30)
-            self.delete_button.setText(u"\u2421")
-            self.delete_button.setFixedWidth(30)
+            nuevo_estado = "icons"    
         elif disponible < (width_path + botones_ancho_total):
-            self.label.setText(self.file_name)
-            self.edit_button.setText("Editar")
-            self.edit_button.setFixedWidth(60)
-            self.delete_button.setText("Borrar")
-            self.delete_button.setFixedWidth(60)
+            nuevo_estado = "name"
         else:
-            self.label.setText(self.file_path)
-            self.edit_button.setText("Editar")
-            self.edit_button.setFixedWidth(80)
-            self.delete_button.setText("Borrar")
-            self.delete_button.setFixedWidth(80)
+            nuevo_estado = "completo"
+
+        if nuevo_estado != self._estado_resize:
+            if nuevo_estado == 'icons':
+                self.label.setText(os.path.basename(self.file_path))
+                self.edit_button.setText(u"\u270E")
+                self.edit_button.setFixedWidth(30)
+                self.delete_button.setText(u"\u2421")
+                self.delete_button.setFixedWidth(30)
+            elif nuevo_estado == 'name':
+                self.label.setText(self.file_name)
+                self.edit_button.setText("Editar")
+                self.edit_button.setFixedWidth(60)
+                self.delete_button.setText("Borrar")
+                self.delete_button.setFixedWidth(60)
+            else:
+                self.label.setText(self.file_path)
+                self.edit_button.setText("Editar")
+                self.edit_button.setFixedWidth(80)
+                self.delete_button.setText("Borrar")
+                self.delete_button.setFixedWidth(80)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -89,10 +100,11 @@ class FileItemWidget(QWidget):
     def borrar_item(self):
         self.main_window.borrar_widget(self)
 
-
+   
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self._estado_resize = None  # Variable para almacenar el estado actual del resize
         self.setWindowTitle("Gestor de Archivos Multimedia")
         self.resize(800, 600)
         self.setMinimumWidth(370)
@@ -156,29 +168,9 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         disponible = self.width()
-        # print(f'Window: {disponible}')
-        if disponible < 370:
-            return # No quiero que se cambie el tamaño de la ventana
-        if disponible < 383:
-            # Opcional: eliminar texto
-            icon_path = os.path.join(self.project_root, "assets", "icons", "abrir_archivos.png")
-            print(icon_path)
-            if not os.path.exists(icon_path):
-                print("No se encontró el icono")
-            icon = QIcon(icon_path) # estoy en una subcarpeta
-            self.btn_open_files.setIcon(icon)
-            self.btn_open_files.setText("")  
-            self.btn_open_files.setIconSize(QSize(24, 24))  # Tamaño del icono
-            self.btn_open_files.setFixedSize(40, 40)    
-            # self.btn_open_files.setFixedWidth(30)
-        elif disponible < 544:
-            self.btn_open_files.setIcon(QIcon())
-            self.btn_open_files.setText("Abrir")
-            self.btn_open_files.setFixedWidth(60)
-        else:
-            self.btn_open_files.setIcon(QIcon())
-            self.btn_open_files.setText("Abrir archivos")
-            self.btn_open_files.setFixedWidth(120)
+        for widget in self.menu_layout.children():
+            widget.actualizar_texto(disponible)
+        
 
 
 

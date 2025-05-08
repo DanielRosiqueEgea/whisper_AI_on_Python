@@ -1,5 +1,8 @@
 docker_py==1.10.6
 ffmpeg_python==0.2.0
+PySide6==6.9.0
+PySide6==6.9.0
+PySide6_Addons==6.9.0
+PySide6_Essentials==6.9.0
 torch==2.7.0
 tqdm==4.67.1
-whisper
