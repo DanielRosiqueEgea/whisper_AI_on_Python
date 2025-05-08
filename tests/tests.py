@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, mock_open
 import os
 import json
 
-from utils import transcribe_chunks  # Asegúrate de usar el nombre real del módulo
+from core.utils import transcribe_chunks  # Asegúrate de usar el nombre real del módulo
 
 class TestTranscribeChunks(unittest.TestCase):
 

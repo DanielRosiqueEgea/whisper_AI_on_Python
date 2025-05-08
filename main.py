@@ -12,7 +12,9 @@ from whisper.utils import get_writer, format_timestamp
 import subprocess
 import math  
 import json
-from core.utils import generate_audio_files, transcribe_chunks, run_whisper_docker, run_whisper_local, select_formats
+from core.utils import (generate_audio_files, transcribe_chunks, run_whisper_docker,  
+                        run_whisper_local, select_formats, write_files, 
+                        adjust_segments, split_audio_fixed_chunks)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 

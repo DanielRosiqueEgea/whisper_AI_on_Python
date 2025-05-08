@@ -129,6 +129,10 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         disponible = self.width()
 
+        font_metrics = QFontMetrics(self.btn_open_files.font())
+
+        text_path = self.btn_open_files.text()
+        text_name = self.btn_open_files.text()
         width_path = font_metrics.horizontalAdvance(text_path) + 40
         width_name = font_metrics.horizontalAdvance(text_name) + 40
 
