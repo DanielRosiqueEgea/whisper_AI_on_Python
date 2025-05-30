@@ -9,7 +9,7 @@ import sys
 import whisper
 import torch
 from whisper.utils import get_writer, format_timestamp
-
+import hashlib
 import math  
 import json
 
@@ -17,28 +17,30 @@ import json
 def generate_audio_files(input_paths, output_audio_dir):
     #TODO: Añadir tqdm
     audio_exts = [".mp3", ".wav", ".m4a"]
-
-# Paso 3: Convertir solo los videos
-    audio_files = []
+    audio_map = {}  # audio convertido o directo → original
+    # Paso 3: Convertir solo los videos
+    
     for path in input_paths:
         ext = os.path.splitext(path)[1].lower()
         base = os.path.splitext(os.path.basename(path))[0]
 
         if ext in audio_exts:
         # Es un archivo de audio, usar directamente
-            print(f"Detectado audio: {path}")
-            audio_files.append(path)
+            print(f"Detectado audio: {path=}")
+            audio_map[path] = path
         else:
-        # Es un video, convertirlo a .mp3
-            audio_path = os.path.join(output_audio_dir, f"{base}.mp3")
-            print(f"Convirtiendo video a audio: {path} → {audio_path}")
+        # Es un video, convertirlo a .mp3ç
+            path_hash = hashlib.sha1(path.encode()).hexdigest()[:8]
+            safe_name = f"{base}_{path_hash}.mp3"
+            audio_path = os.path.join(output_audio_dir, safe_name)
+            print(f"Convirtiendo video a audio: {path} ->  {audio_path}")
             if os.path.exists(audio_path):
                 print(f"El archivo {audio_path} ya existe. Saltando...")
-                audio_files.append(audio_path)
+                audio_map[audio_path] = path
                 continue
             ffmpeg.input(path).output(audio_path, acodec='libmp3lame').run(overwrite_output=True)
-            audio_files.append(audio_path)
-    return audio_files
+            audio_map[audio_path] = path
+    return audio_map
 
 
 def run_whisper_docker(container, audio_path, output_dir, language="Spanish"):
@@ -170,8 +172,8 @@ def transcribe_chunks(model, adjust_segments, audio_stem, audio_output_host_dir,
 
 
         result = model.transcribe(chunk_path, language="Spanish", verbose=None)
-        if result['temperature'] < 0.4:
-            continue
+        # if result['temperature'] < 0.4:
+        #     continue
         segments = result["segments"]
         segments = adjust_segments(segments, offset)
         all_segments.extend(segments)
