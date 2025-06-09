@@ -24,14 +24,15 @@ available_devices = ["cpu", "cuda"]
 def process_command_line_arguments():
     argumentList = sys.argv[1:]
 
-    options = "hi:d:m:o:"
-    long_options = ["help", "input=", "device=", "model_size=", "output_formats="]
+    options = "hi:d:m:o:f:"
+    long_options = ["help", "input=", "device=", "model_size=", "output_formats=", "fraction="]
 
     # verbose = None
     input_path = None
     output_formats= None
     model_size = 'medium'
     device = 'cuda'
+    fraction = 1
 
     try:
         arguments, values = getopt.getopt(argumentList, options, long_options)
@@ -43,7 +44,7 @@ def process_command_line_arguments():
     print("Values: ", values)   
     for currentArgument, currentValue in arguments:
         if currentArgument in ("-h", "--help"):
-            print("Usage: python main.py [-h] [-v MODE] [-i INPUT] [-o OUTPUT] [-c CLASSIFICATION_MODE]")
+            print("Usage: python main.py [-h] [-i INPUT] [-o OUTPUT] [-c CLASSIFICATION_MODE] [-m MODEL_SIZE] [-d DEVICE] [-f FRACTION]")
             print("Options:")
             print("  -h, --help           Show this help message and exit")
             # TODO: ADD Verbose mode
@@ -56,8 +57,10 @@ def process_command_line_arguments():
 
             print("  -m, --model_size SIZE    Specify the model_size (default: 'medium')")
             print(f"                       possible values: {available_models}")
-            print("  -o, --output_formats ALLOWED_FORMATS    Specify the formats to be used (default: it will be asked")
+            print("  -o, --output_formats ALLOWED_FORMATS    Specify the formats to be used (default: it will be asked)")
             print(f"                       possible values: {available_formats}")
+            print("  -f, --fraction [value]    Fraction of the video to transcribe (default: 1")
+            print(f"                       can be negative, if so, the transcription will 'start' from the end")
             sys.exit(0)
 
         # if currentArgument in ("-v", "--verbose"):
@@ -67,15 +70,21 @@ def process_command_line_arguments():
             input_path = currentValue
 
         if currentArgument in ("-o", "--output_formats"):
+            print(f"Output formats: {currentValue}")
             tmp_formats = currentValue.split(' ')
+            print(f"Output formats: {tmp_formats}")
             tmp_formats = [format for format in tmp_formats if format in available_formats]
             if len(tmp_formats) != 0:
                 output_formats = tmp_formats
             else:
                 print(f"Output formats {currentValue} are not available. Available formats: {available_formats}")
                 output_formats = None
+
+        if currentArgument in ("-f", "--fraction"):
+            fraction = currentValue
+            fraction = float(fraction)
+            print(f"Fraction: {fraction}")
             
-    
 
         if currentArgument in ("-d", "--device"):
             if currentValue not in available_devices:
@@ -87,7 +96,7 @@ def process_command_line_arguments():
                 print(f"Model size {currentValue} is not available. Available models: {available_models}")
                 model_size = None
        
-    return input_path, output_formats, model_size, device
+    return input_path, output_formats, model_size, device, fraction
 
 
 
@@ -132,7 +141,7 @@ def get_file_paths(input_path):
     return valid_paths
 
 
-input_path, output_formats, model_size, device = process_command_line_arguments()
+input_path, output_formats, model_size, device, fraction = process_command_line_arguments()
 
 
 input_paths = []
@@ -146,7 +155,7 @@ if not input_paths:
 output_tmp_dir = "/tmp/audio_to_transcribe"
 os.makedirs(output_tmp_dir, exist_ok=True)
 
-audio_map = generate_audio_files(input_paths, output_tmp_dir)
+audio_map = generate_audio_files(input_paths, output_tmp_dir,fraction=fraction, verbose=False)
 audio_files = list(audio_map.keys())
 
 
@@ -181,7 +190,8 @@ for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=Fal
     audio_name = os.path.basename(audio)
     audio_stem = os.path.splitext(audio_name)[0]
     audio_tmp_host_dir = os.path.join(output_tmp_dir, audio_stem)
-    original_path = audio_map[audio]
+    audio_dict = audio_map[audio]
+    original_path = audio_map[audio].get("original")
     audio_output_host_dir = os.path.join(os.path.dirname(original_path),audio_stem)
 
     os.makedirs(audio_tmp_host_dir, exist_ok=True)
@@ -192,8 +202,11 @@ for audio in (audio_pbar := tqdm(audio_files, desc="Procesando audio", leave=Fal
     all_segments = []
     audio_pbar.set_description(f"Procesando audio: {audio_name} en Local")
 
-    chunks = split_audio_fixed_chunks(audio, chunk_duration=60)
-    
+    if fraction != 1.0:
+        pass
+    else:
+        chunks = split_audio_fixed_chunks(audio, duration= audio_dict.get("duration"), start= audio_dict.get("start"), chunk_duration=60)
+
     transcript_path = os.path.join(audio_output_host_dir, f"{audio_stem}.txt")
     if os.path.exists(transcript_path):
         audio_pbar.set_description(f"Transcript ya existente: {transcript_path}")
